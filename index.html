@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Weather Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Google Fonts & Feather / Lucide icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+
+    <!-- Ambient Glowing Blobs -->
+    <div class="ambient-glow glow-1"></div>
+    <div class="ambient-glow glow-2"></div>
+
+    <div class="app-container">
+        
+        <!-- Search & Header Section -->
+        <header class="search-header">
+            <div class="search-bar-wrap">
+                <div class="search-input-box">
+                    <i data-lucide="search" class="search-icon-inside"></i>
+                    <input type="text" id="cityInput" placeholder="Enter city name (e.g. Colombo, London, Tokyo)..." spellcheck="false" autocomplete="off">
+                </div>
+                <button class="action-btn" id="searchBtn" title="Search City">
+                    <i data-lucide="arrow-right"></i>
+                </button>
+                <button class="action-btn" id="locationBtn" title="Use Current Location">
+                    <i data-lucide="map-pin"></i>
+                </button>
+            </div>
+
+            <!-- Quick Access Cities -->
+            <div class="quick-cities">
+                <span class="chip-label">Quick Search:</span>
+                <span class="city-chip" data-city="Colombo">Colombo</span>
+                <span class="city-chip" data-city="Kandy">Kandy</span>
+                <span class="city-chip" data-city="Galle">Galle</span>
+                <span class="city-chip" data-city="London">London</span>
+                <span class="city-chip" data-city="Tokyo">Tokyo</span>
+                <span class="city-chip" data-city="New York">New York</span>
+            </div>
+
+            <!-- Error Banner -->
+            <div class="error-banner" id="errorBanner">
+                <i data-lucide="alert-circle"></i>
+                <span id="errorMessage">Invalid city name. Please try again!</span>
+            </div>
+        </header>
+
+        <!-- Loading State -->
+        <div class="loading-state" id="loadingState">
+            <div class="spinner"></div>
+            <p style="color: var(--text-muted); font-size: 0.95rem;">Fetching weather data...</p>
+        </div>
+
+        <!-- Main Weather Display -->
+        <main class="weather-content" id="weatherContent">
+
+            <!-- Hero Main Card -->
+            <div class="weather-hero">
+                <div class="hero-left">
+                    <div class="location-badge">
+                        <i data-lucide="map-pin"></i>
+                        <span class="city-name" id="cityName">Colombo</span>
+                        <span class="country-code" id="countryCode">LK</span>
+                    </div>
+                    <div class="date-time" id="dateTime">Wednesday, 30 Sep • 03:30 PM</div>
+
+                    <div class="temp-container">
+                        <div class="temp-main" id="tempValue">32</div>
+                        <div class="temp-unit-toggle">
+                            <span class="active" id="unitC">°C</span> | <span id="unitF">°F</span>
+                        </div>
+                    </div>
+
+                    <div class="weather-condition">
+                        <span id="conditionText">Scatter Clouds</span>
+                    </div>
+                    <div class="feels-like">Feels like <span id="feelsLike">35 °C</span></div>
+                </div>
+
+                <div class="hero-right">
+                    <div class="weather-icon-wrapper">
+                        <img src="images/clouds.png" id="weatherIcon" alt="Weather condition">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Extended Metrics Grid -->
+            <div style="margin-top: 24px; display: flex; flex-direction: column; gap: 14px;">
+                <h3 class="metrics-section-title">Weather Highlights</h3>
+                <div class="metrics-grid">
+                    
+                    <div class="metric-card">
+                        <div class="metric-header">
+                            <div class="metric-icon-box">
+                                <img src="images/humidity.png" alt="humidity">
+                            </div>
+                            <span class="metric-name">Humidity</span>
+                        </div>
+                        <div class="metric-value" id="humidityValue">74%</div>
+                        <div class="metric-sub" id="humiditySub">Moisture content</div>
+                    </div>
+
+                    <div class="metric-card">
+                        <div class="metric-header">
+                            <div class="metric-icon-box">
+                                <img src="images/wind.png" alt="wind">
+                            </div>
+                            <span class="metric-name">Wind Speed</span>
+                        </div>
+                        <div class="metric-value" id="windValue">4.39 km/h</div>
+                        <div class="metric-sub" id="windSub">Gentle Breeze</div>
+                    </div>
+
+                    <div class="metric-card">
+                        <div class="metric-header">
+                            <div class="metric-icon-box">
+                                <i data-lucide="gauge"></i>
+                            </div>
+                            <span class="metric-name">Pressure</span>
+                        </div>
+                        <div class="metric-value" id="pressureValue">1012 hPa</div>
+                        <div class="metric-sub">Normal atmosphere</div>
+                    </div>
+
+                    <div class="metric-card">
+                        <div class="metric-header">
+                            <div class="metric-icon-box">
+                                <i data-lucide="eye"></i>
+                            </div>
+                            <span class="metric-name">Visibility</span>
+                        </div>
+                        <div class="metric-value" id="visibilityValue">10.0 km</div>
+                        <div class="metric-sub">Clear view</div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- 5-Day Forecast Grid -->
+            <div style="margin-top: 24px; display: flex; flex-direction: column; gap: 14px;">
+                <h3 class="metrics-section-title">5-Day Forecast</h3>
+                <div class="forecast-grid" id="forecastGrid">
+                    <!-- Dynamic forecast cards generated by JS -->
+                </div>
+            </div>
+
+        </main>
+
+        <footer class="app-footer">
+            Designed for Live Weather Monitoring • Powered by OpenWeather API
+        </footer>
+
+    </div>
+
+<script>
+const apiKey = "82e07192da05923c16bdfd1ff3c59ac7";
+const weatherApiUrl = "https://api.openweathermap.org/data/2.5/weather?units=metric&q=";
+const forecastApiUrl = "https://api.openweathermap.org/data/2.5/forecast?units=metric&q=";
+const geoApiUrl = "https://api.openweathermap.org/data/2.5/weather?units=metric&";
+
+const cityInput = document.getElementById("cityInput");
+const searchBtn = document.getElementById("searchBtn");
+const locationBtn = document.getElementById("locationBtn");
+const errorBanner = document.getElementById("errorBanner");
+const errorMessage = document.getElementById("errorMessage");
+const loadingState = document.getElementById("loadingState");
+const weatherContent = document.getElementById("weatherContent");
+const weatherIcon = document.getElementById("weatherIcon");
+
+let currentTempCelsius = 32;
+let currentFeelsCelsius = 35;
+let isCelsius = true;
+
+// Initialize Lucide Icons
+lucide.createIcons();
+
+// Quick Chips
+document.querySelectorAll(".city-chip").forEach(chip => {
+    chip.addEventListener("click", () => {
+        const city = chip.getAttribute("data-city");
+        cityInput.value = city;
+        checkWeather(city);
+    });
+});
+
+// Format Date & Time
+function updateDateTime() {
+    const now = new Date();
+    const options = { weekday: 'long', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' };
+    document.getElementById("dateTime").innerText = now.toLocaleDateString('en-US', options);
+}
+
+// Check Weather Function
+async function checkWeather(city) {
+    if (!city || city.trim() === "") return;
+    
+    showLoading(true);
+    hideError();
+
+    try {
+        const response = await fetch(`${weatherApiUrl}${encodeURIComponent(city)}&appid=${apiKey}`);
+
+        if (response.status === 404) {
+            showError("City not found. Please check the spelling and try again!");
+            showLoading(false);
+            return;
+        }
+
+        if (!response.ok) {
+            showError("Error fetching weather data. Please try again.");
+            showLoading(false);
+            return;
+        }
+
+        const data = await response.json();
+        updateUI(data);
+
+        // Fetch forecast as well
+        fetchForecast(city);
+    } catch (err) {
+        console.error(err);
+        showError("Network error. Please check your connection.");
+    } finally {
+        showLoading(false);
+    }
+}
+
+// Fetch Weather by Coordinates
+async function checkWeatherByCoords(lat, lon) {
+    showLoading(true);
+    hideError();
+
+    try {
+        const response = await fetch(`${geoApiUrl}lat=${lat}&lon=${lon}&appid=${apiKey}`);
+        if (!response.ok) throw new Error("Failed to fetch location weather");
+
+        const data = await response.json();
+        cityInput.value = data.name;
+        updateUI(data);
+
+        // Fetch forecast
+        fetchForecast(data.name);
+    } catch (err) {
+        console.error(err);
+        showError("Could not determine weather for your current location.");
+    } finally {
+        showLoading(false);
+    }
+}
+
+// Update UI Components
+function updateUI(data) {
+    document.getElementById("cityName").innerText = data.name;
+    document.getElementById("countryCode").innerText = data.sys.country || "";
+    
+    currentTempCelsius = Math.round(data.main.temp);
+    currentFeelsCelsius = Math.round(data.main.feels_like);
+    renderTemperatures();
+
+    document.getElementById("conditionText").innerText = data.weather[0].description;
+    document.getElementById("humidityValue").innerText = `${data.main.humidity}%`;
+    document.getElementById("windValue").innerText = `${(data.wind.speed * 3.6).toFixed(1)} km/h`;
+    document.getElementById("pressureValue").innerText = `${data.main.pressure} hPa`;
+    
+    const visibilityKm = data.visibility ? (data.visibility / 1000).toFixed(1) : "10.0";
+    document.getElementById("visibilityValue").innerText = `${visibilityKm} km`;
+
+    // Weather Icon & Theme mapping
+    const condition = data.weather[0].main;
+    updateThemeAndIcon(condition);
+    updateDateTime();
+}
+
+// Fetch 5-Day Forecast
+async function fetchForecast(city) {
+    const forecastGrid = document.getElementById("forecastGrid");
+    forecastGrid.innerHTML = "";
+
+    try {
+        const response = await fetch(`${forecastApiUrl}${encodeURIComponent(city)}&appid=${apiKey}`);
+        if (!response.ok) return;
+
+        const data = await response.json();
+        // OpenWeather forecast gives 3-hour steps. Filter 1 entry per day around 12:00 PM
+        const dailyList = data.list.filter(item => item.dt_txt.includes("12:00:00")).slice(0, 5);
+
+        dailyList.forEach(item => {
+            const date = new Date(item.dt * 1000);
+            const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
+            const temp = Math.round(item.main.temp);
+            const cond = item.weather[0].main;
+            const iconSrc = getIconPath(cond);
+
+            const card = document.createElement("div");
+            card.className = "forecast-card";
+            card.innerHTML = `
+                <div class="forecast-day">${dayName}</div>
+                <img src="${iconSrc}" class="forecast-icon" alt="${cond}">
+                <div class="forecast-temp">${temp}°C</div>
+                <div class="forecast-condition">${item.weather[0].main}</div>
+            `;
+            forecastGrid.appendChild(card);
+        });
+    } catch (err) {
+        console.warn("Forecast fetch skipped or failed", err);
+    }
+}
+
+// Map condition to icon image path
+function getIconPath(condition) {
+    switch (condition) {
+        case "Clouds": return "images/clouds.png";
+        case "Clear": return "images/clear.png";
+        case "Rain": return "images/rain.png";
+        case "Drizzle": return "images/drizzle.png";
+        case "Mist":
+        case "Fog":
+        case "Haze": return "images/mist.png";
+        case "Snow": return "images/snow.png";
+        default: return "images/clouds.png";
+    }
+}
+
+// Update Theme Gradient & Weather Icon
+function updateThemeAndIcon(condition) {
+    weatherIcon.src = getIconPath(condition);
+
+    // Dynamic background themes
+    const body = document.body;
+    switch (condition) {
+        case "Clear":
+            body.style.background = "var(--bg-gradient-clear)";
+            break;
+        case "Clouds":
+            body.style.background = "var(--bg-gradient-clouds)";
+            break;
+        case "Rain":
+            body.style.background = "var(--bg-gradient-rain)";
+            break;
+        case "Drizzle":
+            body.style.background = "var(--bg-gradient-drizzle)";
+            break;
+        case "Mist":
+        case "Fog":
+        case "Haze":
+            body.style.background = "var(--bg-gradient-mist)";
+            break;
+        case "Snow":
+            body.style.background = "var(--bg-gradient-snow)";
+            break;
+        default:
+            body.style.background = "var(--bg-gradient-clear)";
+    }
+}
+
+// Temperature Unit Toggle (°C / °F)
+function renderTemperatures() {
+    if (isCelsius) {
+        document.getElementById("tempValue").innerText = currentTempCelsius;
+        document.getElementById("feelsLike").innerText = `${currentFeelsCelsius} °C`;
+        document.getElementById("unitC").classList.add("active");
+        document.getElementById("unitF").classList.remove("active");
+    } else {
+        const tempF = Math.round((currentTempCelsius * 9/5) + 32);
+        const feelsF = Math.round((currentFeelsCelsius * 9/5) + 32);
+        document.getElementById("tempValue").innerText = tempF;
+        document.getElementById("feelsLike").innerText = `${feelsF} °F`;
+        document.getElementById("unitC").classList.remove("active");
+        document.getElementById("unitF").classList.add("active");
+    }
+}
+
+document.getElementById("unitC").addEventListener("click", () => {
+    isCelsius = true;
+    renderTemperatures();
+});
+
+document.getElementById("unitF").addEventListener("click", () => {
+    isCelsius = false;
+    renderTemperatures();
+});
+
+// Helper Functions
+function showLoading(isLoading) {
+    loadingState.style.display = isLoading ? "flex" : "none";
+    weatherContent.style.display = isLoading ? "none" : "block";
+}
+
+function showError(msg) {
+    errorMessage.innerText = msg;
+    errorBanner.style.display = "flex";
+}
+
+function hideError() {
+    errorBanner.style.display = "none";
+}
+
+// Event Listeners
+searchBtn.addEventListener("click", () => {
+    checkWeather(cityInput.value);
+});
+
+cityInput.addEventListener("keypress", (e) => {
+    if (e.key === "Enter") {
+        checkWeather(cityInput.value);
+    }
+});
+
+locationBtn.addEventListener("click", () => {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                checkWeatherByCoords(pos.coords.latitude, pos.coords.longitude);
+            },
+            (err) => {
+                showError("Location permission denied. Please search manually.");
+            }
+        );
+    } else {
+        showError("Geolocation is not supported by your browser.");
+    }
+});
+
+// Default initial fetch
+checkWeather("Colombo");
+</script>
+
+</body>
+</html>
